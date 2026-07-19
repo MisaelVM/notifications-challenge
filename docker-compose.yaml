@@ -13,5 +13,17 @@ services:
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-postgres}
       - POSTGRES_DB=${DATABASE_NAME:-postgres_db}
 
+  postgres-test-db:
+    image: postgres:18.4-alpine
+    profiles: [ test ]
+    restart: on-failure
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql
+    env_file:
+      - .env.test
+
 volumes:
   postgres-data:
+  postgres-test-data:

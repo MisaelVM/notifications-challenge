@@ -6,6 +6,9 @@ dist/
 wheels/
 *.egg-info
 
+# Tests
+.pytest_cache/
+
 # Virtual environments
 .venv
 
@@ -13,3 +16,4 @@ wheels/
 .env
 .env.*
 !.env.example
+!.env.*.example
