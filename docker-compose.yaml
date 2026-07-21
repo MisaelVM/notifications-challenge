@@ -1,28 +1,73 @@
 name: notifications-challenge
 
 services:
+  api:
+    build:
+      context: .
+      target: production
+    profiles: [ production ]
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_HOST=postgres-db
+      - DATABASE_PORT=5432
+
   postgres-db:
     image: postgres:18.4-alpine
+    profiles: [ production ]
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DATABASE_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
     environment:
       - POSTGRES_USER=${DATABASE_USER:-postgres}
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-postgres}
       - POSTGRES_DB=${DATABASE_NAME:-postgres_db}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "${DATABASE_NAME:-postgres_db}" ]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+  api-test:
+    build:
+      context: .
+      target: test
+    profiles: [ test ]
+    depends_on:
+      postgres-test-db:
+        condition: service_healthy
+    env_file:
+      - .env.test
+    environment:
+      - DATABASE_HOST=postgres-test-db
+      - DATABASE_PORT=5432
 
   postgres-test-db:
     image: postgres:18.4-alpine
     profiles: [ test ]
     restart: on-failure
     ports:
-      - "127.0.0.1:5433:5432"
+      - "127.0.0.1:${DATABASE_PORT:-5433}:5432"
     volumes:
       - postgres-test-data:/var/lib/postgresql
-    env_file:
-      - .env.test
+    environment:
+      - POSTGRES_USER=${DATABASE_USER:-postgres}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-postgres}
+      - POSTGRES_DB=${DATABASE_NAME:-postgres_db_test}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready", "-d", "${DATABASE_NAME:-postgres_db_test}" ]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
 
 volumes:
   postgres-data:
