@@ -1,0 +1,27 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@4.0.0
+
+jobs:
+  build_and_test:
+    executor:
+      name: python/default
+      tag: '3.14'
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: uv
+      - run:
+          command: |
+            uv run pytest --version
+          name: Test it
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - .
+
+workflows:
+  build_test:
+    jobs:
+      - build_and_test
