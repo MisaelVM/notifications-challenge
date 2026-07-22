@@ -6,12 +6,12 @@ orbs:
 jobs:
   build_and_test:
     docker:
+      - image: cimg/python:3.14.6
       - image: cimg/postgres:18.4
         environment:
           POSTGRES_USER: postgres
           DATABASE_PASSWORD: postgres
           POSTGRES_DB: postgres_db_test
-      - image: cimg/python:3.14.6
     executor:
       name: python/default
       tag: '3.14'
