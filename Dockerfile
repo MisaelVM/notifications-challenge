@@ -47,4 +47,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 
-CMD [ "/bin/sh", "-c", "exec uv run pytest -v" ]
+CMD [ "/bin/sh", "-c", "exec uv run pytest --cov=app --cov-report term-missing --cov-report lcov tests/ -v" ]
