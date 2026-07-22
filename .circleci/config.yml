@@ -8,14 +8,27 @@ jobs:
     executor:
       name: python/default
       tag: '3.14'
+    docker:
+      - image: cimg/postgres:18.4
+        environment:
+          POSTGRES_USER: postgres
+          DATABASE_PASSWORD: postgres
+          POSTGRES_DB: challenge_db_test
     steps:
       - checkout
       - python/install-packages:
           pkg-manager: uv
       - run:
           command: |
-            uv run pytest --version
+            uv run pytest -v
           name: Test it
+          environment:
+            DATABASE_PROTOCOL_DRIVER: postgresql+psycopg
+            DATABASE_HOST: 127.0.0.1
+            DATABASE_PORT: 5432
+            DATABASE_USER: postgres
+            DATABASE_PASSWORD: postgres
+            DATABASE_NAME: challenge_db_test
       - persist_to_workspace:
           root: ~/project
           paths:
