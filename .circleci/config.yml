@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   python: circleci/python@4.0.0
+  coveralls: coveralls/coveralls@2.2.5
 
 jobs:
   build_and_test:
@@ -10,7 +11,7 @@ jobs:
       - image: cimg/postgres:18.4
         environment:
           POSTGRES_USER: postgres
-          DATABASE_PASSWORD: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: challenge_db_test
     executor:
       name: python/default
@@ -21,7 +22,7 @@ jobs:
           pkg-manager: uv
       - run:
           command: |
-            uv run pytest -v
+            uv run pytest --cov=app --cov-report term-missing --cov-report lcov tests/ -v
           name: Test it
           environment:
             DATABASE_PROTOCOL_DRIVER: postgresql+psycopg
@@ -30,6 +31,9 @@ jobs:
             DATABASE_USER: postgres
             DATABASE_PASSWORD: postgres
             DATABASE_NAME: challenge_db_test
+      - coveralls/upload:
+          debug: true
+          coverage_file: ./coverage.lcov
       - persist_to_workspace:
           root: ~/project
           paths:

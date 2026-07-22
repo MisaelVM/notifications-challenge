@@ -12,6 +12,10 @@ wheels/
 
 # Tests
 .pytest_cache/
+htmlcov/
+.coverage
+coverage.*
+*py,cover
 
 # Virtual environments
 .venv
