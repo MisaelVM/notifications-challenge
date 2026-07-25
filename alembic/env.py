@@ -5,7 +5,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-import app.users.user_model  # noqa  # pyright: ignore[reportUnusedImport]
+import app.users.models  # noqa: F401  # pyright: ignore[reportUnusedImport]
 from alembic import context
 from app.core.config import settings
 from app.core.database import Base

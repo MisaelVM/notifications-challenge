@@ -3,8 +3,8 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 
-from app.users.user_repository import UserRepository
-from app.users.user_schema import UserCreate, UserResponse, UserUpdate
+from app.users.repository import UserRepository
+from app.users.schema import UserCreate, UserResponse, UserUpdate
 
 
 class UserService:
