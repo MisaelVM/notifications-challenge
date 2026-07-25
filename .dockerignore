@@ -17,6 +17,9 @@ htmlcov/
 coverage.*
 *py,cover
 
+# Ruff
+.ruff_cache/
+
 # Virtual environments
 .venv
 
