@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.core.database import engine
-from app.users.user_router import router as user_router
+from app.users.router import router as user_router
 
 
 @asynccontextmanager

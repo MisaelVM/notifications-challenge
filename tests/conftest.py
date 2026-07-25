@@ -26,11 +26,10 @@ def anyio_backend():
 
 @pytest.fixture(scope="session")
 def test_engine():
-    engine = create_async_engine(
+    return create_async_engine(
         test_settings.database_connection_url.get_secret_value(),
         poolclass=NullPool,
     )
-    return engine
 
 
 @pytest.fixture(scope="session")
