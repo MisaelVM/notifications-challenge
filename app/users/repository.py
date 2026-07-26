@@ -3,12 +3,13 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends
+from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
 from app.users.models import User
-from app.users.schema import UserCreate, UserUpdate
+from app.users.schemas import UserCreate, UserUpdate
 
 
 class UserRepository:
@@ -22,13 +23,15 @@ class UserRepository:
     async def find_by_id(self, user_id: UUID) -> User | None:
         return await self._db.get(User, user_id)
 
+    async def find_by_email(self, email: EmailStr) -> User | None:
+        result = await self._db.execute(select(User).where(User.email == email.lower()))
+        return result.scalars().first()
+
     async def create(self, create_data: UserCreate) -> User:
-        # TODO: Handle db constraints exceptions for insert
-        # TODO: Hash password
         new_user = User(
             name=create_data.name,
             email=create_data.email,
-            password_hash=create_data.password,
+            password_hash=create_data.password_hash,
         )
         self._db.add(new_user)
         await self._db.commit()

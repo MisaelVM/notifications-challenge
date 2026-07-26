@@ -1,14 +1,11 @@
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status
 
-from app.users.schema import UserCreate, UserResponse, UserUpdate
-from app.users.service import UserService
+from app.users.schemas import UserCreate, UserResponse, UserUpdate
+from app.users.service import UserServiceDependency
 
 router = APIRouter(prefix="/users")
-
-type UserServiceDependency = Annotated[UserService, Depends()]
 
 
 @router.get("", response_model=list[UserResponse])
@@ -21,7 +18,7 @@ async def get_user(
     user_id: UUID,
     service: UserServiceDependency,
 ):
-    return await service.get_user(user_id)
+    return await service.get_user_by_id(user_id)
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

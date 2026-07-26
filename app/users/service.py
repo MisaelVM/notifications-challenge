@@ -1,10 +1,14 @@
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
+from pydantic import EmailStr
 
 from app.users.repository import UserRepository
-from app.users.schema import UserCreate, UserResponse, UserUpdate
+from app.users.schemas import UserCreate, UserResponse, UserUpdate
+
+if TYPE_CHECKING:
+    from app.users.models import User
 
 
 class UserService:
@@ -15,13 +19,28 @@ class UserService:
         users = await self._user_repository.find_all()
         return [UserResponse.model_validate(user) for user in users]
 
-    async def get_user(self, user_id: UUID) -> UserResponse:
+    async def get_user_by_id(self, user_id: UUID) -> UserResponse:
         user = await self._user_repository.find_by_id(user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
         return UserResponse.model_validate(user)
+
+    async def get_user_by_email_internal(self, email: EmailStr) -> User | None:
+        return await self._user_repository.find_by_email(email)
+
+    async def get_user_by_email(self, email: EmailStr) -> UserResponse:
+        user = await self.get_user_by_email_internal(email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+        return UserResponse.model_validate(user)
+
+    async def is_email_already_registered(self, email: EmailStr) -> bool:
+        user = await self._user_repository.find_by_email(email)
+        return user is not None
 
     async def create_user(self, create_data: UserCreate) -> UserResponse:
         user = await self._user_repository.create(create_data)
@@ -43,3 +62,6 @@ class UserService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
         await self._user_repository.delete(user)
+
+
+type UserServiceDependency = Annotated[UserService, Depends()]
