@@ -3,11 +3,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.core.database import engine
+from app.core.logger import setup_logging
 from app.users.router import router as user_router
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    setup_logging()
     yield
     await engine.dispose()
 
