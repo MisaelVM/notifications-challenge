@@ -17,7 +17,12 @@ class UserUpdate(BaseModel):
     email: EmailStr | None = Field(default=None, max_length=120)
 
 
-class UserResponse(UserBase):
+class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    name: str
+
+
+class UserPrivate(UserPublic):
+    email: EmailStr

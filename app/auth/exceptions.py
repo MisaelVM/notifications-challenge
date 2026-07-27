@@ -25,3 +25,12 @@ class InvalidCredentialsException(AuthException):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+class PermissionDeniedException(AuthException):
+    def __init__(self, action_description: str) -> None:
+        super().__init__(
+            error_code="PERMISSION_DENIED",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"You're not allowed to perform this action: {action_description}",
+        )

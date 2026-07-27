@@ -22,7 +22,7 @@ from app.core.security import (
 from app.users.exceptions import EmailAlreadyRegisteredException
 from app.users.models import User
 from app.users.repository import UserRepository
-from app.users.schemas import UserCreate, UserResponse
+from app.users.schemas import UserCreate, UserPublic
 from app.users.service import UserService, UserServiceDependency
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class AuthService:
     async def register_user(
         self,
         register_user_data: RegisterUserRequest,
-    ) -> UserResponse:
+    ) -> UserPublic:
         email_exists = await self._user_service.is_email_already_registered(
             register_user_data.email
         )
@@ -96,4 +96,4 @@ async def get_current_user(
     return user
 
 
-type CurrentUser = Annotated[UserResponse, Depends(get_current_user)]
+type CurrentUser = Annotated[User, Depends(get_current_user)]
