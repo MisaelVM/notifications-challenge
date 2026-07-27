@@ -21,33 +21,33 @@ class UserService:
         users = await self._user_repository.find_all()
         return [UserPublic.model_validate(user) for user in users]
 
-    async def get_user_by_id(self, user_id: UUID) -> UserPublic:
+    async def get_user_by_id(self, user_id: UUID) -> UserPrivate:
         user = await self._user_repository.find_by_id(user_id)
         if not user:
             raise UserNotFoundException(str(user_id))
 
-        return UserPublic.model_validate(user)
+        return UserPrivate.model_validate(user)
 
     async def get_user_by_email_internal(self, email: EmailStr) -> User | None:
         return await self._user_repository.find_by_email(email)
 
-    async def get_user_by_email(self, email: EmailStr) -> UserPublic:
+    async def get_user_by_email(self, email: EmailStr) -> UserPrivate:
         user = await self.get_user_by_email_internal(email)
         if not user:
             raise UserNotFoundException(value=email, attribute="email")
 
-        return UserPublic.model_validate(user)
+        return UserPrivate.model_validate(user)
 
     async def is_email_already_registered(self, email: EmailStr) -> bool:
         user = await self._user_repository.find_by_email(email)
         return user is not None
 
-    async def create_user(self, create_data: UserCreate) -> UserPublic:
+    async def create_user(self, create_data: UserCreate) -> UserPrivate:
         if await self.is_email_already_registered(create_data.email):
             raise EmailAlreadyRegisteredException(create_data.email)
 
         user = await self._user_repository.create(create_data)
-        return UserPublic.model_validate(user)
+        return UserPrivate.model_validate(user)
 
     async def update_user(
         self, user_id: UUID, update_data: UserUpdate, actor_id: UUID

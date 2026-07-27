@@ -9,13 +9,6 @@ from app.users.service import UserServiceDependency
 router = APIRouter(prefix="/users")
 
 
-"""
-@router.get("", response_model=list[UserPublic])
-async def get_users(service: UserServiceDependency):
-    return await service.list_users()
-"""
-
-
 @router.get("/me", response_model=UserPrivate)
 async def get_current_user(current_user: CurrentUser):
     return current_user
@@ -27,16 +20,6 @@ async def get_user(
     service: UserServiceDependency,
 ):
     return await service.get_user_by_id(user_id)
-
-
-"""
-@router.post("", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
-async def create_user(
-    user_create_data: UserCreate,
-    service: UserServiceDependency,
-):
-    return await service.create_user(user_create_data)
-"""
 
 
 @router.patch("/{user_id}", response_model=UserPrivate)

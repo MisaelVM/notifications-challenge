@@ -81,3 +81,32 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
         yield ac
 
     app.dependency_overrides.clear()
+
+
+async def create_test_user(
+    client: AsyncClient,
+    name: str = "testuser",
+    email: str = "test@example.com",
+    password: str = "testpassword123",  # noqa: S107
+) -> dict[str, str]:
+    response = await client.post(
+        "/api/v1/auth", json={"name": name, "email": email, "password": password}
+    )
+    assert response.status_code == 201, f"Failed to create user: {response.text}"
+    return response.json()
+
+
+async def login_user(
+    client: AsyncClient,
+    email: str = "test@example.com",
+    password: str = "testpassword123",  # noqa: S107
+) -> str:
+    response = await client.post(
+        "/api/v1/auth/token", data={"username": email, "password": password}
+    )
+    assert response.status_code == 200, f"Failed to login: {response.text}"
+    return response.json()["access_token"]
+
+
+def auth_header(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}

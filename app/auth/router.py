@@ -5,12 +5,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.auth.schemas import RegisterUserRequest, Token
 from app.auth.service import AuthServiceDependency
-from app.users.schemas import UserPublic
+from app.users.schemas import UserPrivate
 
 router = APIRouter(prefix="/auth")
 
 
-@router.post("/", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserPrivate, status_code=status.HTTP_201_CREATED)
 async def register_user(
     user_create_data: RegisterUserRequest, auth_service: AuthServiceDependency
 ):
