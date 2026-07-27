@@ -8,7 +8,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from app.auth.exceptions import (
     AuthenticationFailedException,
-    EmailAlreadyRegisteredException,
     InvalidCredentialsException,
 )
 from app.auth.schemas import RegisterUserRequest, Token
@@ -20,6 +19,7 @@ from app.core.security import (
     verify_access_token,
     verify_password,
 )
+from app.users.exceptions import EmailAlreadyRegisteredException
 from app.users.models import User
 from app.users.repository import UserRepository
 from app.users.schemas import UserCreate, UserResponse
@@ -51,7 +51,7 @@ class AuthService:
 
     async def login_for_access_token(
         self,
-        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+        form_data: OAuth2PasswordRequestForm,
     ) -> Token:
         user = await self._user_service.get_user_by_email_internal(form_data.username)
         if not user or not verify_password(form_data.password, user.password_hash):
