@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,10 +17,6 @@ class NotificationCreate(NotificationBase):
 
 
 class NotificationUpdate(BaseModel):
-    # title: str | None = Field(default=None, min_length=1, max_length=255)
-    # content: str | None = Field(default=None, min_length=1)
-    # channel: NotificationChannels | None = Field(default=None)
-
     title: str | None = Field(default=None, min_length=1, max_length=255)
     content: str | None = Field(default=None, min_length=1)
     channel: NotificationChannels | None = Field(default=None)
@@ -29,6 +26,8 @@ class NotificationResponse(NotificationBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    created_at: datetime
+    user_id: UUID
 
 
 class PaginatedNotificationResponse(BaseModel):

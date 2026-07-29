@@ -25,7 +25,9 @@ async def get_notifications_for_current_user(
     return await service.get_notifications_by_user_id(current_user.id, skip, limit)
 
 
-@router.post("", response_model=NotificationResponse)
+@router.post(
+    "", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_notification(
     notification_create_data: NotificationCreate,
     current_user: CurrentUser,
