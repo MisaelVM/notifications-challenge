@@ -12,9 +12,11 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import Settings
 from app.core.database import Base, get_db_session
+from app.core.rate_limiter import limiter
 from app.main import app
 
 test_settings = Settings(_env_file=".env.test")  # pyright: ignore[reportCallIssue]
+limiter.enabled = False
 
 pytest_plugins = ["anyio"]
 
