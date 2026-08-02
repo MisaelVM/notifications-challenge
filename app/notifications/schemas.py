@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.notifications.models import NotificationChannels
+from app.notifications.models import NotificationChannels, NotificationStatus
 
 
 class NotificationBase(BaseModel):
@@ -27,6 +27,7 @@ class NotificationResponse(NotificationBase):
 
     id: UUID
     created_at: datetime
+    status: NotificationStatus
     user_id: UUID
 
 
