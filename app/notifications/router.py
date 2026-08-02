@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, BackgroundTasks, Query, Response, status
 
 from app.auth.service import CurrentUser
 from app.notifications.schemas import (
@@ -31,11 +31,12 @@ async def get_notifications_for_current_user(
 async def create_notification(
     notification_create_data: NotificationCreate,
     current_user: CurrentUser,
+    background_tasks: BackgroundTasks,
     service: NotificationServiceDependency,
     response: Response,
 ):
     new_notification = await service.create_notification(
-        notification_create_data, current_user.id
+        notification_create_data, current_user, background_tasks
     )
     response.headers["Location"] = f"/api/v1/notifications/{new_notification.id}"
     return new_notification
