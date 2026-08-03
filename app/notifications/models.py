@@ -15,9 +15,15 @@ if TYPE_CHECKING:
 
 
 class NotificationChannels(enum.StrEnum):
-    EMAIL = "email"
-    SMS = "sms"
-    PUSH_NOTIFICATION = "push_notification"
+    EMAIL = "EMAIL"
+    SMS = "SMS"
+    PUSH_NOTIFICATION = "PUSH_NOTIFICATION"
+
+
+class NotificationStatus(enum.StrEnum):
+    PENDING = "PENDING"
+    SENT = "SENT"
+    FAILED = "FAILED"
 
 
 class Notification(Base):
@@ -30,6 +36,12 @@ class Notification(Base):
     content: Mapped[str] = mapped_column(sa.Text, nullable=False)
     channel: Mapped[NotificationChannels] = mapped_column(
         sa.Enum(NotificationChannels, name="notification_channels"), nullable=False
+    )
+    status: Mapped[NotificationStatus] = mapped_column(
+        sa.Enum(NotificationStatus, name="notification_status"),
+        default=NotificationStatus.PENDING,
+        server_default=NotificationStatus.PENDING,
+        nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), default=sa.func.now(), server_default=sa.func.now()

@@ -27,5 +27,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
+    mail_server: str = "localhost"
+    mail_port: int = 587
+    mail_username: str = ""
+    mail_password: SecretStr = SecretStr("")
+    mail_from: str = "noreply@example.com"
+    mail_use_tls: bool = True
+
 
 settings = Settings()  # pyright: ignore[reportCallIssue]

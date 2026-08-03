@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db_session
-from app.notifications.models import Notification
+from app.notifications.models import Notification, NotificationStatus
 from app.notifications.schemas import NotificationCreate, NotificationUpdate
 
 
@@ -62,6 +62,13 @@ class NotificationRepository:
         data_to_update = update_data.model_dump(exclude_unset=True, exclude_none=True)
         for field, value in data_to_update.items():
             setattr(notification, field, value)
+        await self._db.commit()
+        await self._db.refresh(notification, attribute_names=["user"])
+
+    async def update_status(
+        self, notification: Notification, status: NotificationStatus
+    ) -> None:
+        notification.status = status
         await self._db.commit()
         await self._db.refresh(notification, attribute_names=["user"])
 
