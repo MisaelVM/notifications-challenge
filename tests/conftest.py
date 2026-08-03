@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from pytest_mock import MockerFixture
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -112,3 +113,33 @@ async def login_user(
 
 def auth_header(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+
+async def create_simple_notification(
+    client: AsyncClient,
+    mocker: MockerFixture,
+    auth_token: str,
+    title: str = "Test Notification",
+    content: str = "Test notification content",
+    channel: str = "EMAIL",
+) -> dict[str, str]:
+    email_strategy_send_mock = mocker.patch(
+        "app.notifications.service.EmailDispatcherStrategy.send",
+        new=mocker.AsyncMock(return_value=True),
+    )
+    new_notification = {
+        "title": title,
+        "content": content,
+        "channel": channel.upper(),
+    }
+    response = await client.post(
+        "/api/v1/notifications", json=new_notification, headers=auth_header(auth_token)
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert response.headers["Location"] == f"/api/v1/notifications/{data['id']}"
+
+    email_strategy_send_mock.assert_awaited_once()
+
+    return data
