@@ -29,6 +29,6 @@ class InvalidRecipientException(NotificationsException):
     def __init__(self, channel: str, recipient_type: str) -> None:
         super().__init__(
             error_code="INVALID_RECIPIENT",
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"{channel} channel requires a valid '{recipient_type}'. Update your profile to include one.",
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"{channel} channel requires a valid '{recipient_type}' in your profile. Update your profile to include one.",
         )

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic import SecretStr, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -33,6 +35,8 @@ class Settings(BaseSettings):
     mail_password: SecretStr = SecretStr("")
     mail_from: str = "noreply@example.com"
     mail_use_tls: bool = True
+
+    fcm_service_key_file: Path = Path()
 
 
 settings = Settings()  # pyright: ignore[reportCallIssue]

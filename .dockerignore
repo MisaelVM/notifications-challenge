@@ -28,3 +28,6 @@ coverage.*
 .env.*
 !.env.example
 !.env.*.example
+
+# Secret files
+firebase_service_key_file.json
