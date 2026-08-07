@@ -1,0 +1,74 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+import {
+  getMessaging,
+  onMessage,
+  onRegistered,
+  register,
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging.js";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC_likyA_fN8wAh6llHYwXCB1GSjRCffUU",
+  authDomain: "test-project-a9235.firebaseapp.com",
+  projectId: "test-project-a9235",
+  storageBucket: "test-project-a9235.firebasestorage.app",
+  messagingSenderId: "358837086105",
+  appId: "1:358837086105:web:1cbd20af2a6e71e7d81508",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const vapidKey =
+  "BH1m3PzZKUYNWCORF5nTos04VSZsbuOAKdjuUNMIjIsVYU-AH263wsa6w99yvGOQX_yw9ovDwkAjUF1dzhR1QtI";
+
+const messaging = getMessaging(app);
+
+// 1. Implement callback to receive the Firebase installation ID upon registration.
+// This is triggered every time a manual register() finishes, a FID change
+// is detected, or a pushsubscriptionchange event is fired.
+onRegistered(messaging, (installationId) => {
+  console.log("Registered installation ID:", installationId);
+
+  // Send the Firebase Installation ID to your app server and update the UI if needed.
+  //sendRegistrationToServer(installationId)
+});
+
+// 2. You can also manually trigger registration (recommended on app startup)
+register(messaging, { vapidKey })
+  .then(() => {
+    // Success! The Firebase Installation ID can be used to target messages to this app
+    // instance and will be delivered asynchronously to your onRegistered() callback.
+  })
+  .catch((error) => {
+    console.error("An error occurred while registering", error);
+  });
+
+onMessage(messaging, (payload) => {
+  console.log("Message received. ", payload);
+  const { notification } = payload;
+
+  new Notification(notification.title, {
+    body: notification.body,
+  });
+  console.log("Notification extracted. ", notification);
+  // TODO: Append message
+});
+
+function requestPermission() {
+  console.log("Requesting permission...");
+  Notification.requestPermission().then((permission) => {
+    if (permission === "granted") {
+      console.log("Notification permission granted.");
+      // TODO: Get FCM Token
+    } else {
+      console.log("Unable to get permission to notify.");
+    }
+  });
+}
+
+document
+  .getElementById("request-permission-button")
+  .addEventListener("click", requestPermission);
