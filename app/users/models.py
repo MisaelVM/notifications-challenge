@@ -23,7 +23,9 @@ class User(Base):
         sa.String(120), unique=True, nullable=False, index=True
     )
     password_hash: Mapped[str] = mapped_column(sa.String(200), nullable=False)
-
+    phone_number: Mapped[str | None] = mapped_column(
+        sa.String(50), nullable=True, default=None
+    )
     push_token: Mapped[str | None] = mapped_column(
         sa.String(200), nullable=True, default=None
     )

@@ -38,5 +38,10 @@ class Settings(BaseSettings):
 
     fcm_service_key_file: Path = Path()
 
+    twilio_account_sid: str
+    twilio_api_key: str
+    twilio_api_secret: SecretStr
+    twilio_phone_number: str
+
 
 settings = Settings()  # pyright: ignore[reportCallIssue]
