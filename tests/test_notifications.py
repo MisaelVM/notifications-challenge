@@ -71,6 +71,50 @@ async def test_create_email_notification_success(
 
 
 @pytest.mark.anyio
+async def test_create_sms_notification_success(
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
+):
+    user = await create_test_user(client)
+    token = await login_user(client)
+
+    new_notification = {
+        "title": "Test Notification",
+        "content": "Test notification content",
+        "channel": "SMS",
+    }
+    await update_test_user_recipient(client, "phone_number", "+14155550123", token)
+    response = await client.post(
+        BASE_URL,
+        json=new_notification,
+        headers=auth_header(token),
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert response.headers["Location"] == f"{BASE_URL}/{data['id']}"
+    assert data["title"] == new_notification["title"]
+    assert data["content"] == new_notification["content"]
+    assert data["channel"] == new_notification["channel"]
+    assert data["status"] == "PENDING"
+    assert data["user_id"] == user["id"]
+    assert "id" in data
+    assert "created_at" in data
+
+    for channel, notification_send_mock in notification_strategy_mocks.items():
+        if channel == "SMS":
+            notification_send_mock.assert_awaited_once()
+            args, kwargs = notification_send_mock.call_args
+            payload = args[0] if args else kwargs.get("payload")
+
+            assert payload.recipient == "+14155550123"
+            assert payload.title == new_notification["title"]
+            assert payload.content == new_notification["content"]
+        else:
+            notification_send_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_create_push_notification_success(
     client: AsyncClient,
     notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
