@@ -9,12 +9,15 @@ dependencies = [
     "alembic>=1.18.5",
     "fastapi[standard]>=0.139.0",
     "firebase-admin>=7.5.0",
+    "phonenumbers>=9.0.36",
     "psycopg[binary]>=3.3.4",
     "pwdlib[argon2]>=0.3.0",
+    "pydantic-extra-types>=2.11.1",
     "pydantic-settings>=2.14.2",
     "pyjwt>=2.13.0",
     "slowapi>=0.1.10",
     "sqlalchemy>=2.0.51",
+    "twilio>=9.10.9",
 ]
 
 [dependency-groups]

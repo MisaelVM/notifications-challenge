@@ -16,14 +16,16 @@ from app.core.config import Settings
 from app.core.database import Base, get_db_session
 from app.core.push.fcm_client import FCMClient
 from app.core.rate_limiter import limiter
+from app.core.sms.twilio_client import TwilioClient
 from app.main import app
 from app.notifications.strategies.dependencies import get_strategies
 from app.notifications.strategies.email_dispatcher_strategy import (
     EmailDispatcherStrategy,
 )
 from app.notifications.strategies.push_dispatcher_strategy import PushDispatcherStrategy
+from app.notifications.strategies.sms_dispatcher_strategy import SMSDispatcherStrategy
 
-type NotificationChannel = Literal["EMAIL", "PUSH_NOTIFICATION"]
+type NotificationChannel = Literal["EMAIL", "SMS", "PUSH_NOTIFICATION"]
 
 test_settings = Settings(_env_file=".env.test")  # pyright: ignore[reportCallIssue]
 limiter.enabled = False
@@ -86,11 +88,17 @@ def fcm_client_mock(mocker: MockerFixture) -> MockType:
 
 
 @pytest.fixture
+def twilio_client_mock(mocker: MockerFixture) -> MockType:
+    return mocker.MagicMock(spec=TwilioClient)
+
+
+@pytest.fixture
 def notification_strategy_mocks(
     mocker: MockerFixture,
 ) -> dict[NotificationChannel, AsyncMockType]:
     return {
         "EMAIL": mocker.AsyncMock(return_value=True),
+        "SMS": mocker.AsyncMock(return_value=True),
         "PUSH_NOTIFICATION": mocker.AsyncMock(return_value=True),
     }
 
@@ -99,6 +107,7 @@ def notification_strategy_mocks(
 async def client(
     db_session: AsyncSession,
     notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
+    twilio_client_mock: MockType,
     fcm_client_mock: MockType,
 ) -> AsyncGenerator[AsyncClient]:
     async def override_get_db_session():
@@ -110,10 +119,13 @@ async def client(
         email_inst = EmailDispatcherStrategy()
         email_inst.send = notification_strategy_mocks["EMAIL"]
 
+        sms_inst = SMSDispatcherStrategy(twilio_client_mock)
+        sms_inst.send = notification_strategy_mocks["SMS"]
+
         push_inst = PushDispatcherStrategy(fcm_client_mock)
         push_inst.send = notification_strategy_mocks["PUSH_NOTIFICATION"]
 
-        return {"EMAIL": email_inst, "PUSH_NOTIFICATION": push_inst}
+        return {"EMAIL": email_inst, "SMS": sms_inst, "PUSH_NOTIFICATION": push_inst}
 
     app.dependency_overrides[get_strategies] = override_get_strategies
 
