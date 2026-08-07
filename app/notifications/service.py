@@ -8,7 +8,7 @@ from app.notifications.exceptions import (
     InvalidChannelException,
     NotificationNotFoundException,
 )
-from app.notifications.models import NotificationChannels, NotificationStatus
+from app.notifications.models import NotificationStatus
 from app.notifications.repository import NotificationRepository
 from app.notifications.schemas import (
     NotificationCreate,
@@ -18,21 +18,20 @@ from app.notifications.schemas import (
 )
 from app.users.models import User
 
-from .strategies.email_dispatcher_strategy import EmailDispatcherStrategy
+from .strategies.dependencies import NotificationStrategiesTable, get_strategies
 from .strategies.notification_dispatcher_strategy import (
     NotificationDeliveryPayload,
-    NotificationDispatcherStrategy,
 )
 
 
 class NotificationService:
     def __init__(
-        self, notification_repository: Annotated[NotificationRepository, Depends()]
+        self,
+        notification_repository: Annotated[NotificationRepository, Depends()],
+        strategies: Annotated[NotificationStrategiesTable, Depends(get_strategies)],
     ) -> None:
         self._notification_repository: NotificationRepository = notification_repository
-        self._strategies: dict[NotificationChannels, NotificationDispatcherStrategy] = {
-            NotificationChannels.EMAIL: EmailDispatcherStrategy()
-        }
+        self._strategies: NotificationStrategiesTable = strategies
 
     async def get_notifications_by_user_id(
         self, user_id: UUID, skip: int, limit: int

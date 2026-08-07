@@ -10,11 +10,13 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password_hash: str
+    push_token: str | None = Field(default=None, max_length=200)
 
 
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=50)
     email: EmailStr | None = Field(default=None, max_length=120)
+    push_token: str | None = Field(default=None, max_length=200)
 
 
 class UserPublic(BaseModel):
@@ -26,3 +28,4 @@ class UserPublic(BaseModel):
 
 class UserPrivate(UserPublic):
     email: EmailStr
+    push_token: str | None

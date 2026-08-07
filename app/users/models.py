@@ -24,6 +24,10 @@ class User(Base):
     )
     password_hash: Mapped[str] = mapped_column(sa.String(200), nullable=False)
 
+    push_token: Mapped[str | None] = mapped_column(
+        sa.String(200), nullable=True, default=None
+    )
+
     notifications: Mapped[list[Notification]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )

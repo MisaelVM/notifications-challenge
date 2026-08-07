@@ -8,6 +8,7 @@ dependencies = [
     "aiosmtplib>=5.1.2",
     "alembic>=1.18.5",
     "fastapi[standard]>=0.139.0",
+    "firebase-admin>=7.5.0",
     "psycopg[binary]>=3.3.4",
     "pwdlib[argon2]>=0.3.0",
     "pydantic-settings>=2.14.2",
