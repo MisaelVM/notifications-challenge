@@ -1,12 +1,14 @@
 import pytest
 from httpx import AsyncClient
-from pytest_mock import MockerFixture
+from pytest_mock import AsyncMockType
 
 from tests.conftest import (
+    NotificationChannel,
     auth_header,
     create_simple_notification,
     create_test_user,
     login_user,
+    update_test_user_recipient,
 )
 
 BASE_URL = "/api/v1/notifications"
@@ -26,14 +28,12 @@ async def test_get_notifications_for_current_user_empty(client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_create_notification_success(client: AsyncClient, mocker: MockerFixture):
+async def test_create_email_notification_success(
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
+):
     user = await create_test_user(client)
     token = await login_user(client)
-
-    email_strategy_send_mock = mocker.patch(
-        "app.notifications.service.EmailDispatcherStrategy.send",
-        new=mocker.AsyncMock(return_value=True),
-    )
 
     new_notification = {
         "title": "Test Notification",
@@ -57,13 +57,61 @@ async def test_create_notification_success(client: AsyncClient, mocker: MockerFi
     assert "id" in data
     assert "created_at" in data
 
-    email_strategy_send_mock.assert_awaited_once()
-    args, kwargs = email_strategy_send_mock.call_args
-    payload = args[0] if args else kwargs.get("payload")
+    for channel, notification_send_mock in notification_strategy_mocks.items():
+        if channel == "EMAIL":
+            notification_send_mock.assert_awaited_once()
+            args, kwargs = notification_send_mock.call_args
+            payload = args[0] if args else kwargs.get("payload")
 
-    assert payload.recipient == user["email"]
-    assert payload.title == new_notification["title"]
-    assert payload.content == new_notification["content"]
+            assert payload.recipient == user["email"]
+            assert payload.title == new_notification["title"]
+            assert payload.content == new_notification["content"]
+        else:
+            notification_send_mock.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_create_push_notification_success(
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
+):
+    user = await create_test_user(client)
+    token = await login_user(client)
+
+    new_notification = {
+        "title": "Test Notification",
+        "content": "Test notification content",
+        "channel": "PUSH_NOTIFICATION",
+    }
+    await update_test_user_recipient(client, "push_token", "test_push", token)
+    response = await client.post(
+        BASE_URL,
+        json=new_notification,
+        headers=auth_header(token),
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert response.headers["Location"] == f"{BASE_URL}/{data['id']}"
+    assert data["title"] == new_notification["title"]
+    assert data["content"] == new_notification["content"]
+    assert data["channel"] == new_notification["channel"]
+    assert data["status"] == "PENDING"
+    assert data["user_id"] == user["id"]
+    assert "id" in data
+    assert "created_at" in data
+
+    for channel, notification_send_mock in notification_strategy_mocks.items():
+        if channel == "PUSH_NOTIFICATION":
+            notification_send_mock.assert_awaited_once()
+            args, kwargs = notification_send_mock.call_args
+            payload = args[0] if args else kwargs.get("payload")
+
+            assert payload.recipient == "test_push"
+            assert payload.title == new_notification["title"]
+            assert payload.content == new_notification["content"]
+        else:
+            notification_send_mock.assert_not_awaited()
 
 
 @pytest.mark.anyio
@@ -82,13 +130,16 @@ async def test_create_notification_unauthorized(client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_get_notification_success(client: AsyncClient, mocker: MockerFixture):
+async def test_get_notification_success(
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
+):
     user = await create_test_user(client)
     token = await login_user(client)
     headers = auth_header(token)
     notification = await create_simple_notification(
         client,
-        mocker,
+        notification_strategy_mocks,
         token,
         title="Notification Title",
         content="Content for notification",
@@ -125,13 +176,16 @@ async def test_get_notification_not_found(client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_get_notification_forbidden(client: AsyncClient, mocker: MockerFixture):
+async def test_get_notification_forbidden(
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
+):
     _ = await create_test_user(client, name="user1", email="user1@example.com")
     token1 = await login_user(client, email="user1@example.com")
 
     notification = await create_simple_notification(
         client,
-        mocker,
+        notification_strategy_mocks,
         token1,
         title="User 1's notification",
         content="Content for user 1's notification'",
@@ -149,13 +203,20 @@ async def test_get_notification_forbidden(client: AsyncClient, mocker: MockerFix
 
 
 @pytest.mark.anyio
-async def test_update_notification_success(client: AsyncClient, mocker: MockerFixture):
+async def test_update_notification_success(
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
+):
     user = await create_test_user(client)
     token = await login_user(client)
     headers = auth_header(token)
 
     notification = await create_simple_notification(
-        client, mocker, token, title="Original Notification", content="Original content"
+        client,
+        notification_strategy_mocks,
+        token,
+        title="Original Notification",
+        content="Original content",
     )
     notification_id = notification["id"]
 
@@ -178,13 +239,14 @@ async def test_update_notification_success(client: AsyncClient, mocker: MockerFi
 
 @pytest.mark.anyio
 async def test_update_notification_wrong_user(
-    client: AsyncClient, mocker: MockerFixture
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
 ):
     _ = await create_test_user(client, name="user1", email="user1@example.com")
     token1 = await login_user(client, email="user1@example.com")
     notification = await create_simple_notification(
         client,
-        mocker,
+        notification_strategy_mocks,
         token1,
         title="User's 1 Notification",
         content="Only user 1 should edit this!",
@@ -220,13 +282,16 @@ async def test_update_notification_not_found(client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_delete_notification_success(client: AsyncClient, mocker: MockerFixture):
+async def test_delete_notification_success(
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
+):
     _ = await create_test_user(client)
     token = await login_user(client)
     headers = auth_header(token)
     notification = await create_simple_notification(
         client,
-        mocker,
+        notification_strategy_mocks,
         token,
         title="Notification Title",
         content="Content for notification",
@@ -249,13 +314,14 @@ async def test_delete_notification_success(client: AsyncClient, mocker: MockerFi
 
 @pytest.mark.anyio
 async def test_delete_notification_wrong_user(
-    client: AsyncClient, mocker: MockerFixture
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
 ):
     _ = await create_test_user(client, name="user1", email="user1@example.com")
     token1 = await login_user(client, email="user1@example.com")
     notification = await create_simple_notification(
         client,
-        mocker,
+        notification_strategy_mocks,
         token1,
         title="User's 1 Notification",
         content="Only user 1 should delete this!",
@@ -290,7 +356,8 @@ async def test_delete_notification_not_found(client: AsyncClient):
 
 @pytest.mark.anyio
 async def test_get_notifications_for_current_user_with_pagination(
-    client: AsyncClient, mocker: MockerFixture
+    client: AsyncClient,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
 ):
     _ = await create_test_user(client)
     token = await login_user(client)
@@ -299,7 +366,7 @@ async def test_get_notifications_for_current_user_with_pagination(
     for i in range(5):
         _ = await create_simple_notification(
             client,
-            mocker,
+            notification_strategy_mocks,
             token,
             title=f"Notification {i}",
             content=f"Content for notification {i}",

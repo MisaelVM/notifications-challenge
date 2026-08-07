@@ -1,8 +1,9 @@
 from collections.abc import AsyncGenerator
+from typing import Any, Literal
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from pytest_mock import MockerFixture
+from pytest_mock import AsyncMockType, MockerFixture, MockType
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -13,8 +14,16 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import Settings
 from app.core.database import Base, get_db_session
+from app.core.push.fcm_client import FCMClient
 from app.core.rate_limiter import limiter
 from app.main import app
+from app.notifications.strategies.dependencies import get_strategies
+from app.notifications.strategies.email_dispatcher_strategy import (
+    EmailDispatcherStrategy,
+)
+from app.notifications.strategies.push_dispatcher_strategy import PushDispatcherStrategy
+
+type NotificationChannel = Literal["EMAIL", "PUSH_NOTIFICATION"]
 
 test_settings = Settings(_env_file=".env.test")  # pyright: ignore[reportCallIssue]
 limiter.enabled = False
@@ -72,11 +81,41 @@ async def db_session(
 
 
 @pytest.fixture
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
+def fcm_client_mock(mocker: MockerFixture) -> MockType:
+    return mocker.MagicMock(spec=FCMClient)
+
+
+@pytest.fixture
+def notification_strategy_mocks(
+    mocker: MockerFixture,
+) -> dict[NotificationChannel, AsyncMockType]:
+    return {
+        "EMAIL": mocker.AsyncMock(return_value=True),
+        "PUSH_NOTIFICATION": mocker.AsyncMock(return_value=True),
+    }
+
+
+@pytest.fixture
+async def client(
+    db_session: AsyncSession,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
+    fcm_client_mock: MockType,
+) -> AsyncGenerator[AsyncClient]:
     async def override_get_db_session():
         yield db_session
 
     app.dependency_overrides[get_db_session] = override_get_db_session
+
+    def override_get_strategies() -> dict[NotificationChannel, Any]:
+        email_inst = EmailDispatcherStrategy()
+        email_inst.send = notification_strategy_mocks["EMAIL"]
+
+        push_inst = PushDispatcherStrategy(fcm_client_mock)
+        push_inst.send = notification_strategy_mocks["PUSH_NOTIFICATION"]
+
+        return {"EMAIL": email_inst, "PUSH_NOTIFICATION": push_inst}
+
+    app.dependency_overrides[get_strategies] = override_get_strategies
 
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
@@ -115,18 +154,36 @@ def auth_header(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+async def update_test_user_recipient(
+    client: AsyncClient, recipient_type: str, recipient: str, auth_token: str
+) -> dict[str, str]:
+    response = await client.get("/api/v1/users/me", headers=auth_header(auth_token))
+    assert response.status_code == 200, f"Failed to get current user: {response.text}"
+
+    user = response.json()
+    response = await client.patch(
+        f"/api/v1/users/{user['id']}",
+        json={recipient_type: recipient},
+        headers=auth_header(auth_token),
+    )
+    assert response.status_code == 200, f"Failed to update user: {response.text}"
+    data = response.json()
+    assert data[recipient_type] == recipient, "Recipient was not properly updated"
+
+    return data
+
+
 async def create_simple_notification(
     client: AsyncClient,
-    mocker: MockerFixture,
+    notification_strategy_mocks: dict[NotificationChannel, AsyncMockType],
     auth_token: str,
     title: str = "Test Notification",
     content: str = "Test notification content",
-    channel: str = "EMAIL",
+    channel: NotificationChannel = "EMAIL",
 ) -> dict[str, str]:
-    email_strategy_send_mock = mocker.patch(
-        "app.notifications.service.EmailDispatcherStrategy.send",
-        new=mocker.AsyncMock(return_value=True),
-    )
+    notification_strategy_send_mock = notification_strategy_mocks[channel]
+    notification_strategy_send_mock.reset_mock()
+
     new_notification = {
         "title": title,
         "content": content,
@@ -136,10 +193,12 @@ async def create_simple_notification(
         "/api/v1/notifications", json=new_notification, headers=auth_header(auth_token)
     )
 
-    assert response.status_code == 201
+    assert response.status_code == 201, (
+        f"Failed to create notification: {response.text}"
+    )
     data = response.json()
     assert response.headers["Location"] == f"/api/v1/notifications/{data['id']}"
 
-    email_strategy_send_mock.assert_awaited_once()
+    notification_strategy_send_mock.assert_awaited_once()
 
     return data
