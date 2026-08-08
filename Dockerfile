@@ -17,6 +17,9 @@ RUN uv sync --locked --no-dev
 ## ---------------------- Production Stage ---------------------- ##
 FROM python:3.14-slim-trixie AS production
 
+RUN useradd --create-home appuser
+USER appuser
+
 WORKDIR /app
 
 COPY --from=builder --exclude=tests/ /app /app
@@ -25,16 +28,19 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
 
-CMD [ "/bin/sh", "-c", "exec fastapi run --host 0.0.0.0 --port \"$PORT\" --proxy-headers --forwarded-allow-ips '*'"]
+CMD [ "/bin/sh", "-c", "alembic upgrade head && exec fastapi run --host 0.0.0.0 --port \"$PORT\" --proxy-headers --forwarded-allow-ips '*'"]
 
 ## ---------------------- Build-Dev Stage ----------------------- ##
 FROM builder AS builder-dev
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=builder /usr/local/bin/uv /usr/local/bin/uvx /bin/
 RUN uv sync --locked
 
 ## ------------------------- Test Stage ------------------------- ##
 FROM python:3.14-slim-trixie AS test
+
+RUN useradd --create-home appuser
+USER appuser
 
 WORKDIR /app
 
